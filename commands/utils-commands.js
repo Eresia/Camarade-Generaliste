@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 
 let allCommands = [];
 
@@ -10,6 +10,7 @@ function buildEmbedCommand()
 	let command = new SlashCommandBuilder();
 	command.setName('embed');
 	command.setDescription('Add embed message');
+	command.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
 	command.addStringOption(option => 
 		option
 			.setName('message-id')
@@ -146,6 +147,7 @@ allCommands.push({
 	data: new SlashCommandBuilder()
 			.setName('purge')
 			.setDescription('Purge messages')
+			.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
 			.addSubcommand(subcommand =>
 				subcommand
 					.setName('messages')

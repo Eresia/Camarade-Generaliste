@@ -5,6 +5,7 @@ const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 const DataManager = require('./scripts/data-manager.js');
 const MessageManager = require('./scripts/message-manager.js');
+const RoleReactionManager = require('./scripts/role-reaction-manager.js');
 const DiscordUtils = require('./scripts/discord-utils.js');
 const { exit } = require('process');
 
@@ -37,13 +38,18 @@ const guildValues =
 	{name : 'anonymousQuestionChannel', defaultValue : -1},
 	{name : 'bannedUsers', defaultValue : []},
 	{name : 'askChannel', defaultValue : -1},
+	{name : 'roleCategories', defaultValue : {}},
 ];
 
 const rest = new REST({ version: '9' }).setToken(token);
 const client = new Client({ intents: 
 	[
 		GatewayIntentBits.Guilds,
+		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.GuildMembers,
 		GatewayIntentBits.DirectMessages,
+		GatewayIntentBits.GuildEmojisAndStickers,
+		GatewayIntentBits.GuildMessageReactions
 	] 
 });
 
@@ -51,6 +57,7 @@ const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('
 
 client.commands = new Collection();
 let commandData = [];
+let dynamicCommandData = [];
 
 for (const file of commandFiles) {
 	let commands = require(`./commands/${file}`);
@@ -58,13 +65,22 @@ for (const file of commandFiles) {
 
 	for(let i = 0; i < allCommands.length; i++)
 	{
+		if('dynamicCommandCreator' in allCommands[i])
+		{
+			dynamicCommandData.push({name: allCommands[i].data.name, creator: allCommands[i].dynamicCommandCreator});
+		}
+		else
+		{
+			commandData.push(allCommands[i].data.toJSON());
+		}
+
 		client.commands.set(allCommands[i].data.name, allCommands[i]);
-		commandData.push(allCommands[i].data.toJSON());
 	}
 }
 
 DataManager.initData(path.join(__dirname, 'data'), guildValues);
 DataManager.MessageManager = MessageManager;
+DataManager.RoleReactionManager = RoleReactionManager;
 
 let isInit = false;
 
@@ -159,6 +175,7 @@ client.on('ready', async function () {
 		}
 
 		MessageManager.collectQuestions(DataManager, guild);
+		RoleReactionManager.initAllReactCollectorOnMessage(DataManager, guild);
 	});
 	
 	isInit = true;
@@ -180,9 +197,21 @@ async function refreshCommands()
 
 async function refreshCommandForGuild(guild)
 {
+	let guildCommandData = commandData.map(x => x);
+	for(let i = 0; i < dynamicCommandData.length; i++)
+	{
+		let data = dynamicCommandData[i].creator(dynamicCommandData[i].name, DataManager, guild);
+		if(data == null)
+		{
+			continue;
+		}
+
+		guildCommandData.push(data.toJSON());
+	}
+
 	try
 	{
-		await rest.put(Routes.applicationGuildCommands(clientId, guild.id), { body: commandData });
+		await rest.put(Routes.applicationGuildCommands(clientId, guild.id), { body: guildCommandData });
 		console.log('Successfully registered application commands for guild ' + guild.name);
 	}
 	catch(error)

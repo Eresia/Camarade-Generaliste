@@ -1,5 +1,5 @@
 {
-  "name": "camarade-anonyme",
+  "name": "camarade-generaliste",
   "main": "Bot.js",
   "dependencies": {
     "@discordjs/rest": "^1.2.0",

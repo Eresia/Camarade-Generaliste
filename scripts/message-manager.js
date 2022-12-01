@@ -1,4 +1,4 @@
-const DiscordUtils = require('../scripts/discord-utils.js');
+const DiscordUtils = require('./discord-utils.js');
 const { EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
 const minTimeBeetweenMessage = 1000 * 60 * 1;
