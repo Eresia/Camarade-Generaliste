@@ -76,7 +76,14 @@ async function initReactCollectorOnMessage(dataManager, guild, categoryName)
             return;
         }
 
-        await member.roles.add(role);
+        try
+        {
+            await member.roles.add(role);
+        }
+        catch(error)
+        {
+            console.log(error);
+        }
     });
 
     collector.on('remove', async function(reaction, user)
@@ -100,7 +107,14 @@ async function initReactCollectorOnMessage(dataManager, guild, categoryName)
             return;
         }
 
-        await member.roles.remove(role);
+        try
+        {
+            await member.roles.remove(role);
+        }
+        catch(error)
+        {
+            console.log(error);
+        }
     });
 
     collectors[guild.id][categoryName] = collector;
@@ -130,7 +144,7 @@ function createRoleReactionEmbedMessage(dataManager, guild, categoryName)
 
     let resultEmbed = new EmbedBuilder();
 
-    let description = 'Choisissez les salons pour ' + categoryName;
+    let description = 'Choisissez les salons de ' + categoryName + ' qui vous intéresse.';
     description += '\n\n';
 
     for(let emoji in guildData.roleCategories[categoryName].roles)
