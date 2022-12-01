@@ -2,16 +2,17 @@ const DiscordUtils = require('./discord-utils.js');
 const { EmbedBuilder, ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
 const minTimeBeetweenMessage = 1000 * 60 * 1;
-const maxMessageSize = 2000;
+const maxObjectSize = 50;
+const maxMessageSize = 2000 - maxObjectSize;
 
 let messageData = {};
 let questionCollectors = {};
 
-function createQuestionEmbed(messageContent)
+function createQuestionEmbed(obj, messageContent)
 {
     let embed = new EmbedBuilder();
     embed.setTitle('Nouvelle question anonyme');
-    embed.setDescription(messageContent);
+    embed.setDescription('Objet : ' + obj + '\n\n' + messageContent);
     return embed;
 }
 
@@ -48,7 +49,7 @@ function checkUserError(dataManager, guild, userId)
     return null;
 }
 
-async function askQuestion(dataManager, guild, user, messageContent)
+async function askQuestion(dataManager, guild, user, obj, messageContent)
 {
     let userId = user.id;
     let guildData = dataManager.getServerData(guild.id);
@@ -59,28 +60,45 @@ async function askQuestion(dataManager, guild, user, messageContent)
         return userError;
     }
 
+    if(obj.length == 0)
+    {
+        return 'Votre objet est vide, je ne peux l\'envoyer tel quel, j\'en suis désolé.';
+    }
+
     if(messageContent.length == 0)
     {
         return 'Votre message est vide, je ne peux l\'envoyer tel quel, j\'en suis désolé.';
     }
 
-    if(messageContent.length > maxMessageSize)
+    if((obj.length > maxObjectSize) || (messageContent.length > maxMessageSize))
     {
+        let errorMessage;
+
+        if(obj.length > maxObjectSize)
+        {
+            errorMessage = 'Votre objet est trop long (maximum : ' + maxObjectSize + ' caractères)';
+        }
+        else
+        {
+            errorMessage = 'Votre message est trop long (maximum : ' + maxMessageSize + ' caractères)';
+        }
+
         try
         {
             await user.createDM();
             await user.send('\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\n\nUne copie de votre message pour ne pas le perdre :\n\n\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_');
+            await user.send('Objet : ' + obj + '\n\n');
             for(let i = 0; i < (messageContent.length / maxMessageSize); i++)
             {
                 await user.send(messageContent.substring(i * maxMessageSize, (i + 1) * maxMessageSize));
             }
 
-            return 'Votre message est trop long (maximum : ' + maxMessageSize + ' caractères), je ne peux l\'envoyer tel quel, j\'en suis désolé. Pour que vous ne perdiez pas, je vous l\'ai renvoyé en MP.';
+            return errorMessage + ', je ne peux l\'envoyer tel quel, j\'en suis désolé. Pour que vous ne perdiez pas, je vous l\'ai renvoyé en MP.';
         }
         catch(error)
         {
             console.log(error);
-            return 'Votre message est trop long (maximum : ' + maxMessageSize + ' caractères), je ne peux l\'envoyer tel quel, j\'en suis désolé. Une erreur m\'a empeché de vous l\'envoyer en MP.';
+            return errorMessage + ', je ne peux l\'envoyer tel quel, j\'en suis désolé. Une erreur m\'a empeché de vous l\'envoyer en MP.';
         }
     }
 
@@ -109,9 +127,29 @@ async function askQuestion(dataManager, guild, user, messageContent)
         messageData[guild.id][userId].shift();
     }
 
-	let message = await channel.send({embeds: [createQuestionEmbed(messageContent)]});
+	let message;
+    
+    try
+    {
+        message = await channel.send({embeds: [createQuestionEmbed(obj, messageContent)]});
+    }
+    catch(error)
+    {
+        dataManager.logError(guild, 'Error: Can\'t send message in anonymous channel ' + error.message);
+        return 'Je n\'ai pas les droits pour envoyer le message. Un message anonyme a été envoyé à votre administrateur pour le prévenir.';
+    }
 
     messageData[guild.id][userId].push({'messageId': message.id, date: actualDate});
+
+    try
+    {
+        await message.startThread({name: obj});
+    }
+    catch(error)
+    {
+        dataManager.logError(guild, 'Error: Can\'t create thead for anonymous messages : ' + error.message);
+    }
+
     return 'Message envoyé anonymement !';
 }
 
@@ -131,15 +169,23 @@ async function collectQuestions(dataManager, guild)
 								.setCustomId('anonymous-question-modal')
 								.setTitle('Question anonyme');
 
+    const objectRow = new ActionRowBuilder()
+        .addComponents(
+            new TextInputBuilder()
+                .setCustomId('question-object')
+                .setLabel('Objet de la question')
+                .setStyle(TextInputStyle.Short)
+        );
+    
     const questionRow = new ActionRowBuilder()
         .addComponents(
             new TextInputBuilder()
                 .setCustomId('question-text')
-                .setLabel('Posez votre question')
+                .setLabel('Contenu de la question')
                 .setStyle(TextInputStyle.Paragraph)
         );
 
-    questionModal.addComponents(questionRow);
+    questionModal.addComponents(objectRow, questionRow);
 
     const filter = i => i.customId === 'ask';
     questionCollectors[guild.id] = channel.createMessageComponentCollector({ filter, time: 0 });

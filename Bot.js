@@ -99,11 +99,12 @@ client.on('ready', async function () {
 			{
 				case 'anonymous-question-modal':
 				{
+					let obj = interaction.fields.getTextInputValue('question-object');
 					let question = interaction.fields.getTextInputValue('question-text');
 
 					await interaction.deferReply({ephemeral: true});
 
-					let result = await MessageManager.askQuestion(DataManager, interaction.guild, interaction.user, question);
+					let result = await MessageManager.askQuestion(DataManager, interaction.guild, interaction.user, obj, question);
 
 					interaction.editReply({content: result, ephemeral: true});
 					break;
@@ -171,7 +172,7 @@ client.on('ready', async function () {
 	client.guilds.cache.forEach(async (guild) => {
 		if(sendInitError)
 		{
-			DataManager.logError(guild, 'Init error');
+			DataManager.logError(guild, 'Bot Starting');
 		}
 
 		MessageManager.collectQuestions(DataManager, guild);
