@@ -157,6 +157,11 @@ allCommands.push({
 			return;
 		}
 
+		if(name == null)
+		{
+			name = role.name;
+		}
+
 		guildData.roleCategories[categoryName].roles[emoji] = {roleId: role.id, name: name};
 		let reactMessage = await DiscordUtils.getMessageById(interaction.client, guildData.roleCategories[categoryName].channelId, guildData.roleCategories[categoryName].messageId);
 
@@ -243,6 +248,9 @@ allCommands.push({
 
 		if(reactMessage != null)
 		{
+			let embed = dataManager.RoleReactionManager.createRoleReactionEmbedMessage(dataManager, interaction.guild, categoryName);
+			await reactMessage.edit({embeds: [embed]});
+
 			let reaction = reactMessage.reactions.resolve(targetEmoji);
 			if(reaction != null)
 			{
@@ -317,13 +325,6 @@ function createAddEmojiRoleCommand(name, dataManager, guild)
 
 	data.addStringOption(option =>
 		option
-			.setName('name')
-			.setDescription('Name displayed for emoji')
-			.setRequired(true)
-	);
-
-	data.addStringOption(option =>
-		option
 			.setName('emoji')
 			.setDescription('emoji to react')
 			.setRequired(true)
@@ -334,6 +335,13 @@ function createAddEmojiRoleCommand(name, dataManager, guild)
 			.setName('role')
 			.setDescription('role to add')
 			.setRequired(true)
+	);
+
+	data.addStringOption(option =>
+		option
+			.setName('name')
+			.setDescription('Name displayed for emoji (default : role name)')
+			.setRequired(false)
 	);
 
 	return data;
