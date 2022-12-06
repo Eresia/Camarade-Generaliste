@@ -13,6 +13,12 @@ allCommands.push({
 				.setName('category-name')
 				.setDescription('Name of the category')
 				.setRequired(true)
+		)
+		.addStringOption(option =>
+			option
+				.setName('display-sentence')
+				.setDescription('Displayed sentences for the category')
+				.setRequired(true)
 		),
 
 	async execute(interaction, dataManager) {
@@ -20,6 +26,7 @@ allCommands.push({
 
 		let guildData = dataManager.getServerData(interaction.guild.id);
 		let name = interaction.options.getString('category-name');
+		let display = interaction.options.getString('display-sentence');
 
 		if(name in guildData.roleCategories)
 		{
@@ -27,7 +34,7 @@ allCommands.push({
 			return;
 		}
 
-		guildData.roleCategories[name] = {roles : {}, channelId: -1, messageId: -1};
+		guildData.roleCategories[name] = {display: display, roles : {}, channelId: -1, messageId: -1};
 		dataManager.writeInData(interaction.guild.id);
 		dataManager.refreshCommandForGuild(interaction.guild);
 
@@ -90,6 +97,8 @@ allCommands.push({
 		let embed = dataManager.RoleReactionManager.createRoleReactionEmbedMessage(dataManager, interaction.guild, categoryName);
 		let newMessage = await interaction.channel.send({embeds: [embed]});
 
+		await interaction.deferReply({ephemeral: true});
+
 		for(let emoji in guildData.roleCategories[categoryName].roles)
 		{
 			try
@@ -110,7 +119,41 @@ allCommands.push({
 		dataManager.RoleReactionManager.initReactCollectorOnMessage(dataManager, interaction.guild, categoryName);
 
 		dataManager.writeInData(interaction.guild.id);
-		interaction.reply({content: 'Message created', ephemeral: true});
+		interaction.editReply({content: 'Message created', ephemeral: true});
+	}
+});
+
+allCommands.push({
+	data: new SlashCommandBuilder()
+		.setName('edit-category-displayed-sentence'),
+
+	dynamicCommandCreator: createEditCategoryDisplayCommand,
+
+	async execute(interaction, dataManager) {
+		dataManager.initGuildData(interaction.guild.id);
+
+		let guildData = dataManager.getServerData(interaction.guild.id);
+		let categoryName = interaction.options.getString('category');
+		let display = interaction.options.getString('sentence');
+
+		if(!(categoryName in guildData.roleCategories))
+		{
+			interaction.reply({content: 'Category "' + categoryName + '" don\'t exist', ephemeral: true});
+			return;
+		}
+
+		guildData.roleCategories[categoryName].display = display;
+		let reactMessage = await DiscordUtils.getMessageById(interaction.client, guildData.roleCategories[categoryName].channelId, guildData.roleCategories[categoryName].messageId);
+
+		if(reactMessage != null)
+		{
+			let embed = dataManager.RoleReactionManager.createRoleReactionEmbedMessage(dataManager, interaction.guild, categoryName);
+			await reactMessage.edit({embeds: [embed]});
+		}
+
+		dataManager.writeInData(interaction.guild.id);
+
+		interaction.reply({content: 'Sentence edited !' + categoryName, ephemeral: true});
 	}
 });
 
@@ -306,6 +349,25 @@ function createCreateCategoryMessageCommand(name, dataManager, guild)
 	data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
 	return setCategoryOption(data, dataManager, guild);
+}
+
+function createEditCategoryDisplayCommand(name, dataManager, guild)
+{
+	let data = new SlashCommandBuilder();
+
+	data.setName(name);
+	data.setDescription('Edit category displayed sentence');
+	data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
+
+	data = setCategoryOption(data, dataManager, guild);
+	data.addStringOption(option =>
+		option
+			.setName('sentence')
+			.setDescription('sentence to display')
+			.setRequired(true)
+	);
+
+	return data;
 }
 
 function createAddEmojiRoleCommand(name, dataManager, guild)

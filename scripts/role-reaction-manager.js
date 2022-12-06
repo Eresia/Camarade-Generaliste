@@ -144,7 +144,7 @@ function createRoleReactionEmbedMessage(dataManager, guild, categoryName)
 
     let resultEmbed = new EmbedBuilder();
 
-    let description = 'Choisissez les salons ' + categoryName + ' qui vous intéressent.';
+    let description = guildData.roleCategories[categoryName].display;
     description += '\n\n';
 
     for(let emoji in guildData.roleCategories[categoryName].roles)
