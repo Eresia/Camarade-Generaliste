@@ -232,8 +232,8 @@ allCommands.push({
 
 allCommands.push({
 	data: new SlashCommandBuilder()
-		.setName('active-old-thread-deletion')
-		.setDescription('Active auto delete old threads')
+		.setName('set-auto-delete-thread')
+		.setDescription('Activate auto deletion of old threads')
 		.addBooleanOption(option =>
 			option
 				.setName('delete')
@@ -255,8 +255,8 @@ allCommands.push({
 
 allCommands.push({
 	data: new SlashCommandBuilder()
-		.setName('auto-create-thread')
-		.setDescription('Auto create thread in the channel')
+		.setName('set-channel-auto-thread')
+		.setDescription('Activate auto creation of thread in the channel')
 		.addStringOption(option =>
 			option
 				.setName('name-format')

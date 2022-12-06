@@ -5,7 +5,7 @@ let allCommands = [];
 
 allCommands.push({
 	data: new SlashCommandBuilder()
-		.setName('create-ask')
+		.setName('ask')
 		.setDescription('Ask anonymous question'),
 
 	async execute(interaction, dataManager) {
@@ -26,7 +26,7 @@ allCommands.push({
 
 		dataManager.MessageManager.collectQuestions(dataManager, interaction.guild);
 		
-		interaction.reply({content: "Created", ephemeral: true});
+		interaction.reply({content: "Posez une question anonyme en cliquant sur le bouton si dessous", ephemeral: true});
 	}
 });
 

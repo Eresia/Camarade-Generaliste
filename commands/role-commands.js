@@ -5,8 +5,8 @@ let allCommands = [];
 
 allCommands.push({
 	data: new SlashCommandBuilder()
-		.setName('add-role-category')
-		.setDescription('Add role category')
+		.setName('create-category')
+		.setDescription('Create category where you can add roles later')
 		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
 		.addStringOption(option =>
 			option
@@ -44,8 +44,8 @@ allCommands.push({
 
 allCommands.push({
 	data: new SlashCommandBuilder()
-		.setName('remove-role-category')
-		.setDescription('Remove role category')
+		.setName('delete-category')
+		.setDescription('Delete category')
 		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
 		.addStringOption(option =>
 			option
@@ -78,7 +78,7 @@ allCommands.push({
 
 allCommands.push({
 	data: new SlashCommandBuilder()
-		.setName('create-category-message'),
+		.setName('send-category-message'),
 
 	dynamicCommandCreator: createCreateCategoryMessageCommand,
 
@@ -159,7 +159,7 @@ allCommands.push({
 
 allCommands.push({
 	data: new SlashCommandBuilder()
-		.setName('add-emoji-role'),
+		.setName('add-role-to-category'),
 
 	dynamicCommandCreator: createAddEmojiRoleCommand,
 
@@ -232,7 +232,7 @@ allCommands.push({
 
 allCommands.push({
 	data: new SlashCommandBuilder()
-		.setName('remove-emoji-role'),
+		.setName('remove-role-from-category'),
 
 	dynamicCommandCreator: createRemoveEmojiRoleCommand,
 
