@@ -230,6 +230,29 @@ allCommands.push({
 	}
 });
 
+allCommands.push({
+	data: new SlashCommandBuilder()
+		.setName('active-old-thread-deletion')
+		.setDescription('Active auto delete old threads')
+		.addBooleanOption(option =>
+			option
+				.setName('delete')
+				.setDescription('If you want delete old threads')
+				.setRequired(true)),
+
+	async execute(interaction, dataManager) {
+		dataManager.initGuildData(interaction.guild.id);
+
+		let guildData = dataManager.getServerData(interaction.guild.id);
+		let activeDelete = interaction.options.getBoolean('delete');
+
+		guildData.deleteArchivedThreads = activeDelete;
+		dataManager.writeInData(interaction.guild.id);
+		
+		interaction.reply({content: activeDelete ? 'Threads will be deleted' : 'Threads will be not deleted', ephemeral: true});
+	}
+});
+
 module.exports = {
 	allCommands
 };

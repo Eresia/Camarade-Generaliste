@@ -39,6 +39,7 @@ const guildValues =
 	{name : 'bannedUsers', defaultValue : []},
 	{name : 'askChannel', defaultValue : -1},
 	{name : 'roleCategories', defaultValue : {}},
+	{name : 'deleteArchivedThreads', defaultValue: false}
 ];
 
 const rest = new REST({ version: '9' }).setToken(token);
@@ -147,6 +148,19 @@ client.on('ready', async function () {
 					DataManager.logError(interaction.guild, 'Answer is too long');
 				}
 			}
+		}
+	});
+
+	client.on(Events.ThreadUpdate, function(oldThread, newThread)
+	{
+		if(!DataManager.getServerData(newThread.guild.id).deleteArchivedThreads)
+		{
+			return;
+		}
+
+		if(oldThread.archived && !newThread.archived)
+		{
+			newThread.delete('Delete ' + newThread.name + ' after archiving');
 		}
 	});
 
