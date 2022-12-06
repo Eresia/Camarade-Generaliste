@@ -6,6 +6,7 @@ const { Routes } = require('discord-api-types/v9');
 const DataManager = require('./scripts/data-manager.js');
 const MessageManager = require('./scripts/message-manager.js');
 const RoleReactionManager = require('./scripts/role-reaction-manager.js');
+const ThreadManager = require('./scripts/threadManager.js');
 const DiscordUtils = require('./scripts/discord-utils.js');
 const { exit } = require('process');
 
@@ -39,7 +40,8 @@ const guildValues =
 	{name : 'bannedUsers', defaultValue : []},
 	{name : 'askChannel', defaultValue : -1},
 	{name : 'roleCategories', defaultValue : {}},
-	{name : 'deleteArchivedThreads', defaultValue: false}
+	{name : 'deleteArchivedThreads', defaultValue: false},
+	{name : 'autoCreateThreads', defaultValue: {}}
 ];
 
 const rest = new REST({ version: '9' }).setToken(token);
@@ -50,7 +52,8 @@ const client = new Client({ intents:
 		GatewayIntentBits.GuildMembers,
 		GatewayIntentBits.DirectMessages,
 		GatewayIntentBits.GuildEmojisAndStickers,
-		GatewayIntentBits.GuildMessageReactions
+		GatewayIntentBits.GuildMessageReactions,
+		GatewayIntentBits.MessageContent
 	] 
 });
 
@@ -82,6 +85,7 @@ for (const file of commandFiles) {
 DataManager.initData(path.join(__dirname, 'data'), guildValues);
 DataManager.MessageManager = MessageManager;
 DataManager.RoleReactionManager = RoleReactionManager;
+DataManager.ThreadManager = ThreadManager;
 
 let isInit = false;
 
@@ -191,6 +195,7 @@ client.on('ready', async function () {
 
 		MessageManager.collectQuestions(DataManager, guild);
 		RoleReactionManager.initAllReactCollectorOnMessage(DataManager, guild);
+		ThreadManager.refreshAllThreadListener(DataManager, guild);
 	});
 	
 	isInit = true;

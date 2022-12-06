@@ -249,7 +249,62 @@ allCommands.push({
 		guildData.deleteArchivedThreads = activeDelete;
 		dataManager.writeInData(interaction.guild.id);
 		
-		interaction.reply({content: activeDelete ? 'Threads will be deleted' : 'Threads will be not deleted', ephemeral: true});
+		interaction.reply({content: activeDelete ? 'Threads will be auto deleted' : 'Threads will be not auto deleted anymore', ephemeral: true});
+	}
+});
+
+allCommands.push({
+	data: new SlashCommandBuilder()
+		.setName('auto-create-thread')
+		.setDescription('Auto create thread in the channel')
+		.addStringOption(option =>
+			option
+				.setName('name-format')
+				.setDescription('The format of the thread name (default : Name of user)')
+				.setRequired(false)
+				.addChoices(
+					{ name: 'Name of user', value: 'NAME' },
+					{ name: 'First sentence', value: 'SENTENCE' },
+				))
+		.addBooleanOption(option =>
+			option
+				.setName('active')
+				.setDescription('If you want active auto creation (default : true)')
+				.setRequired(false)),
+
+	async execute(interaction, dataManager) {
+		dataManager.initGuildData(interaction.guild.id);
+
+		let guildData = dataManager.getServerData(interaction.guild.id);
+		let active = interaction.options.getBoolean('active');
+		if(active == null)
+		{
+			active = true;
+		}
+
+		let format = interaction.options.getString('name-format');
+		if((format != 'NAME') && (format != 'SENTENCE'))
+		{
+			format = 'NAME';
+		}
+
+		if(!active)
+		{
+			if(interaction.channel.id in guildData.autoCreateThreads)
+			{
+				delete guildData.autoCreateThreads[interaction.channel.id];
+				dataManager.writeInData(interaction.guild.id);
+				dataManager.ThreadManager.deleteThreadListener(interaction.guild, interaction.channel.id);
+			}
+
+			interaction.reply({content: 'Auto thread desactived for this channel', ephemeral: true});
+			return;
+		}
+		
+		await dataManager.ThreadManager.refreshThreadListener(interaction.guild, interaction.channel.id, format);
+		guildData.autoCreateThreads[interaction.channel.id] = {format: format};
+		dataManager.writeInData(interaction.guild.id);
+		interaction.reply({content: 'Auto thread activated for this channel', ephemeral: true});
 	}
 });
 
