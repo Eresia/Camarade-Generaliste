@@ -59,6 +59,7 @@ function addChannelCommand(command, channelDescription, channelName, callback = 
 
 addChannelCommand('error-log', 'error log channel', 'errorLogChannel');
 addChannelCommand('anonymous-question', 'anonymous question channel', 'anonymousQuestionChannel');
+addChannelCommand('propal', 'propal channel', 'propalChannel');
 
 module.exports = {
 	allCommands

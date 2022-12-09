@@ -37,8 +37,10 @@ const guildValues =
 [
 	{name : 'errorLogChannel', defaultValue : -1},
 	{name : 'anonymousQuestionChannel', defaultValue : -1},
+	{name : 'propalChannel', defaultValue : -1},
 	{name : 'bannedUsers', defaultValue : []},
-	{name : 'askChannel', defaultValue : -1},
+	{name : 'askButtonChannel', defaultValue : -1},
+	{name : 'propalButtonChannel', defaultValue : -1},
 	{name : 'roleCategories', defaultValue : {}},
 	{name : 'deleteArchivedThreads', defaultValue: false},
 	{name : 'autoCreateThreads', defaultValue: {}}
@@ -53,7 +55,7 @@ const client = new Client({ intents:
 		GatewayIntentBits.DirectMessages,
 		GatewayIntentBits.GuildEmojisAndStickers,
 		GatewayIntentBits.GuildMessageReactions,
-		GatewayIntentBits.MessageContent
+		GatewayIntentBits.MessageContent,
 	] 
 });
 
@@ -109,7 +111,20 @@ client.on('ready', async function () {
 
 					await interaction.deferReply({ephemeral: true});
 
-					let result = await MessageManager.askQuestion(DataManager, interaction.guild, interaction.user, obj, question);
+					let result = await MessageManager.sendModalMessage(DataManager, interaction.guild, interaction.user, obj, question, DataManager.getServerData(interaction.guild.id).anonymousQuestionChannel);
+
+					interaction.editReply({content: result, ephemeral: true});
+					break;
+				}
+
+				case 'propal-modal':
+				{
+					let obj = interaction.fields.getTextInputValue('propal-object');
+					let propal = interaction.fields.getTextInputValue('propal-text');
+
+					await interaction.deferReply({ephemeral: true});
+
+					let result = await MessageManager.sendModalMessage(DataManager, interaction.guild, interaction.user, obj, propal, DataManager.getServerData(interaction.guild.id).propalChannel, ['✅', '❌']);
 
 					interaction.editReply({content: result, ephemeral: true});
 					break;
@@ -176,7 +191,8 @@ client.on('ready', async function () {
 
 	client.on(Events.GuildDelete, function(guild)
 	{
-		MessageManager.removeCollector(guild);
+		MessageManager.removeCollector(guild, 'ask');
+		MessageManager.removeCollector(guild, 'propal');
 		DataManager.removeGuildData(guild.id);
 	});
 
@@ -194,6 +210,7 @@ client.on('ready', async function () {
 		}
 
 		MessageManager.collectQuestions(DataManager, guild);
+		MessageManager.collectPropal(DataManager, guild);
 		RoleReactionManager.initAllReactCollectorOnMessage(DataManager, guild);
 		ThreadManager.refreshAllThreadListener(DataManager, guild);
 	});

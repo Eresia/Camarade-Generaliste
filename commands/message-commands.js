@@ -5,8 +5,8 @@ let allCommands = [];
 
 allCommands.push({
 	data: new SlashCommandBuilder()
-		.setName('ask')
-		.setDescription('Ask anonymous question'),
+		.setName('create-ask-message')
+		.setDescription('Send anonymous button'),
 
 	async execute(interaction, dataManager) {
 		dataManager.initGuildData(interaction.guild.id);
@@ -21,12 +21,39 @@ allCommands.push({
 
 		let message = await interaction.channel.send({components: [buttonRow]});
 
-		dataManager.getServerData(interaction.guild.id).askChannel = message.channel.id;
+		dataManager.getServerData(interaction.guild.id).askButtonChannel = message.channel.id;
 		dataManager.writeInData(interaction.guild.id);
 
 		dataManager.MessageManager.collectQuestions(dataManager, interaction.guild);
 		
 		interaction.reply({content: "Posez une question anonyme en cliquant sur le bouton si dessous", ephemeral: true});
+	}
+});
+
+allCommands.push({
+	data: new SlashCommandBuilder()
+		.setName('create-propal-message')
+		.setDescription('Send propal button'),
+
+	async execute(interaction, dataManager) {
+		dataManager.initGuildData(interaction.guild.id);
+
+		const buttonRow = new ActionRowBuilder()
+			.addComponents(
+				new ButtonBuilder()
+					.setCustomId('propal')
+					.setLabel('Faire une proposition')
+					.setStyle(ButtonStyle.Primary)
+			);
+
+		let message = await interaction.channel.send({components: [buttonRow]});
+
+		dataManager.getServerData(interaction.guild.id).propalButtonChannel = message.channel.id;
+		dataManager.writeInData(interaction.guild.id);
+
+		dataManager.MessageManager.collectPropal(dataManager, interaction.guild);
+		
+		interaction.reply({content: "Faire une proposition en cliquant sur le bouton si dessous", ephemeral: true});
 	}
 });
 

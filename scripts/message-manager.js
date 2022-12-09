@@ -16,6 +16,14 @@ function createQuestionEmbed(obj, messageContent)
     return embed;
 }
 
+function createPropalEmbed(obj, messageContent)
+{
+    let embed = new EmbedBuilder();
+    embed.setTitle('Nouvelle proposition');
+    embed.setDescription('Objet : ' + obj + '\n\n' + messageContent);
+    return embed;
+}
+
 function checkUserError(dataManager, guild, userId)
 {
     let guildData = dataManager.getServerData(guild.id);
@@ -42,14 +50,14 @@ function checkUserError(dataManager, guild, userId)
         let diff = actualDate - messageData[guild.id][userId][messageData[guild.id][userId].length - 1].date;
         if(diff < minTimeBeetweenMessage)
         {
-            return 'Vous devez attendre encore ' + Math.ceil((minTimeBeetweenMessage - diff) / 1000) + ' secondes avant de pouvoir reposer une question anonyme.';
+            return 'Vous devez attendre encore ' + Math.ceil((minTimeBeetweenMessage - diff) / 1000) + ' secondes avant de pouvoir reposer une question anonyme ou une proposition.';
         }
     }
 
     return null;
 }
 
-async function askQuestion(dataManager, guild, user, obj, messageContent)
+async function sendModalMessage(dataManager, guild, user, obj, messageContent, channelId, emojiToReact = [])
 {
     let userId = user.id;
     let guildData = dataManager.getServerData(guild.id);
@@ -114,12 +122,12 @@ async function askQuestion(dataManager, guild, user, obj, messageContent)
 
     let actualDate = Date.now();
 
-    let channel = await DiscordUtils.getChannelById(guild.client, guildData.anonymousQuestionChannel);
+    let channel = await DiscordUtils.getChannelById(guild.client, channelId);
 
     if(channel == null)
     {
-        dataManager.logError(guild, 'Error: No anonymous question channel exist');
-        return 'Le channel de question anonyme n\'est pas correctement paramétré. Un message anonyme a été envoyé à votre administrateur pour le prévenir.';
+        dataManager.logError(guild, 'Error: The channel for question or propal don\'t exist exist');
+        return 'Le channel pour envoyer votre message n\'est pas correctement paramétré. Un message anonyme a été envoyé à votre administrateur pour le prévenir.';
     }
 
     if(messageData[guild.id][userId].length >= 4)
@@ -143,6 +151,10 @@ async function askQuestion(dataManager, guild, user, obj, messageContent)
 
     try
     {
+        for(let i = 0; i < emojiToReact.length; i++)
+        {
+            await message.react(emojiToReact[i]);
+        }
         await message.startThread({name: obj});
     }
     catch(error)
@@ -155,10 +167,10 @@ async function askQuestion(dataManager, guild, user, obj, messageContent)
 
 async function collectQuestions(dataManager, guild)
 {
-    let channelId = dataManager.getServerData(guild.id).askChannel;
+    let channelId = dataManager.getServerData(guild.id).askButtonChannel;
     let channel = await DiscordUtils.getChannelById(guild.client, channelId);
 
-    removeCollector(guild);
+    removeCollector(guild, 'ask');
 
     if(channel == null)
     {
@@ -188,9 +200,15 @@ async function collectQuestions(dataManager, guild)
     questionModal.addComponents(objectRow, questionRow);
 
     const filter = i => i.customId === 'ask';
-    questionCollectors[guild.id] = channel.createMessageComponentCollector({ filter, time: 0 });
 
-    questionCollectors[guild.id].on('collect', async function(button)
+    if(!(guild.id in questionCollectors))
+    {
+        questionCollectors[guild.id] = {};
+    }
+
+    questionCollectors[guild.id].ask = channel.createMessageComponentCollector({ filter, time: 0 });
+
+    questionCollectors[guild.id].ask.on('collect', async function(button)
     {
         let userError = checkUserError(dataManager, guild, button.user.id);
         if(userError != null)
@@ -203,12 +221,71 @@ async function collectQuestions(dataManager, guild)
     });
 }
 
-function removeCollector(guild)
+async function collectPropal(dataManager, guild)
+{
+    let channelId = dataManager.getServerData(guild.id).propalButtonChannel;
+    let channel = await DiscordUtils.getChannelById(guild.client, channelId);
+
+    removeCollector(guild, 'propal');
+
+    if(channel == null)
+    {
+        return;
+    }
+
+    const propalModal = new ModalBuilder()
+								.setCustomId('propal-modal')
+								.setTitle('Proposition');
+
+    const objectRow = new ActionRowBuilder()
+        .addComponents(
+            new TextInputBuilder()
+                .setCustomId('propal-object')
+                .setLabel('Objet de la proposition')
+                .setStyle(TextInputStyle.Short)
+        );
+    
+    const propalRow = new ActionRowBuilder()
+        .addComponents(
+            new TextInputBuilder()
+                .setCustomId('propal-text')
+                .setLabel('Contenu de la proposition')
+                .setStyle(TextInputStyle.Paragraph)
+        );
+
+        propalModal.addComponents(objectRow, propalRow);
+
+    const filter = i => i.customId === 'propal';
+
+    if(!(guild.id in questionCollectors))
+    {
+        questionCollectors[guild.id] = {};
+    }
+
+    questionCollectors[guild.id].propal = channel.createMessageComponentCollector({ filter, time: 0 });
+
+    questionCollectors[guild.id].propal.on('collect', async function(button)
+    {
+        let userError = checkUserError(dataManager, guild, button.user.id);
+        if(userError != null)
+        {
+            button.reply({content: userError, ephemeral: true});
+            return;
+        }
+        
+        button.showModal(propalModal);
+    });
+}
+
+function removeCollector(guild, type)
 {
     if(guild.id in questionCollectors)
     {
-        questionCollectors[guild.id].stop();
-        delete questionCollectors[guild.id];
+        if(type in questionCollectors[guild.id])
+        {
+            questionCollectors[guild.id][type].stop();
+            delete questionCollectors[guild.id][type];
+        }
     }
 }
 
@@ -235,8 +312,9 @@ function getAuthor(dataManager, guild, messageId)
 
 module.exports = 
 {
-	askQuestion,
+	sendModalMessage,
     collectQuestions,
+    collectPropal,
     removeCollector,
     getAuthor
 }

@@ -169,6 +169,17 @@ allCommands.push({
 							.setDescription('Delete and recreate channel')
 							.setRequired(false)
 					)
+				)
+			.addSubcommand(subcommand =>
+				subcommand
+					.setName('threads')
+					.setDescription('Purge all threads of a channel')
+					.addBooleanOption(option =>
+						option
+							.setName('only-closed')
+							.setDescription('Delete Only closed threads')
+							.setRequired(true)
+					)
 				),
 
 	async execute(interaction, dataManager) {
@@ -224,6 +235,40 @@ allCommands.push({
 					await interaction.editReply({content: 'Remove ' + nbMessages + ' messages', ephemeral: true });
 				}
 				
+				break;
+			}
+
+			case 'threads':
+			{
+				let hasMoreThreads;
+				let onlyClosed = interaction.options.getBoolean('only-closed');
+				let nbThreadRemoved = 0;
+
+				do
+				{
+					let fetchedThreads = await interaction.channel.threads.fetchArchived({type: 'private', fetchAll: true}, false);
+					let threads = Array.from(fetchedThreads.threads.values());
+					hasMoreThreads = fetchedThreads.hasMore;
+
+					fetchedThreads = await interaction.channel.threads.fetchArchived({type: 'public'}, false);
+					threads = threads.concat(Array.from(fetchedThreads.threads.values()));
+					hasMoreThreads = hasMoreThreads || fetchedThreads.hasMore;
+					
+					if(!onlyClosed)
+					{
+						fetchedThreads = await interaction.channel.threads.fetchActive(false);
+						threads = threads.concat(Array.from(fetchedThreads.threads.values()));
+						hasMoreThreads = hasMoreThreads || fetchedThreads.hasMore;
+					}
+
+					for(let i = 0; i < threads.length; i++)
+					{
+						nbThreadRemoved++;
+						await threads[i].delete();
+					}
+				} while(hasMoreThreads);
+				
+				await interaction.editReply({content: 'Remove ' + nbThreadRemoved + ' threads', ephemeral: true });
 				break;
 			}
 		}
