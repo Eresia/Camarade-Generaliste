@@ -360,6 +360,12 @@ function createEditCategoryDisplayCommand(name, dataManager, guild)
 	data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
 	data = setCategoryOption(data, dataManager, guild);
+
+	if(data == null)
+	{
+		return null;
+	}
+
 	data.addStringOption(option =>
 		option
 			.setName('sentence')

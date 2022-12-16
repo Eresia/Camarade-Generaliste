@@ -264,7 +264,14 @@ async function logError(guild, error)
 
 	if(channel != null)
 	{
-		channel.send('Info: ' + error);
+		try
+		{
+			await channel.send('Info: ' + error);
+		}
+		catch(error)
+		{
+			console.log('Can\'t log error : ' + error);
+		}
 	}
 }
 
