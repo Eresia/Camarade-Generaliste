@@ -21,6 +21,6 @@ Bot généraliste permet entre autre :
 }
 ```
 
-- docker compose up -d
+- `docker compose up -d`
 
 Si tout est configuré correctement dans le dev portal de Discord et dans le config.json, votre bot devrait tourner :)
