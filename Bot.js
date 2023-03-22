@@ -27,16 +27,35 @@ if(!fs.existsSync('config.json'))
 	exit(0);
 }
 
-const { clientId, token, errorLogGuild } = require('./config.json');
+const config = JSON.parse(fs.readFileSync('./config.json'));
 
-if(clientId.length == 0 || token.length == 0)
+if(!('clientId' in config) || !('token' in config))
+{
+	if(!('clientId' in config))
+	{
+		config.clientId = "";
+	}
+
+	if(!('token' in config))
+	{
+		config.token = "";
+	}
+
+	fs.writeFileSync('config.json', JSON.stringify(config, null, 4));
+	console.log('Need to fill config.json with discord bot informations');
+	return;
+}
+
+if(config.clientId.length == 0 || config.token.length == 0)
 {
 	console.log('Need to fill config.json with discord bot informations');
 	exit(0);
 }
 
-if(errorLogGuild.length == 0)
+if(!('errorLogGuild' in config) || config.errorLogGuild.length == 0)
 {
+	config.errorLogGuild = "";
+	fs.writeFileSync('config.json', JSON.stringify(config, null, 4));
 	console.log('No error log guild specified');
 }
 
@@ -53,7 +72,7 @@ const guildValues =
 	{name : 'autoCreateThreads', defaultValue: {}}
 ];
 
-const rest = new REST({ version: '9' }).setToken(token);
+const rest = new REST({ version: '9' }).setToken(config.token);
 const client = new Client({ intents: 
 	[
 		GatewayIntentBits.Guilds,
@@ -257,7 +276,7 @@ async function refreshCommandForGuild(guild)
 
 	try
 	{
-		await rest.put(Routes.applicationGuildCommands(clientId, guild.id), { body: guildCommandData });
+		await rest.put(Routes.applicationGuildCommands(config.clientId, guild.id), { body: guildCommandData });
 		console.log('Successfully registered application commands for guild ' + guild.name);
 	}
 	catch(error)
@@ -284,11 +303,11 @@ async function logError(guild, error)
 	}
 }
 
-if(caughtException && errorLogGuild.length > 0)
+if(caughtException && config.errorLogGuild.length > 0)
 {
 	process.once('uncaughtException', async function (err)
 	{
-		await DataManager.logError(await DiscordUtils.getGuildById(client, errorLogGuild), 'Uncaught exception: ' + err);
+		await DataManager.logError(await DiscordUtils.getGuildById(client, config.errorLogGuild), 'Uncaught exception: ' + err);
 		console.log('Uncaught exception: ' + err);
 		exit(1);
 	});
@@ -297,4 +316,4 @@ if(caughtException && errorLogGuild.length > 0)
 DataManager.refreshCommandForGuild = refreshCommandForGuild;
 DataManager.logError = logError;
 
-client.login(token);
+client.login(config.token);
