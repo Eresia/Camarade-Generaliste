@@ -6,6 +6,7 @@ const DataManager = require('./scripts/data-manager.js');
 const MessageManager = require('./scripts/message-manager.js');
 const RoleReactionManager = require('./scripts/role-reaction-manager.js');
 const ThreadManager = require('./scripts/thread-manager.js');
+const LexiconManager = require('./scripts/lexicon-manager.js');
 const DiscordUtils = require('./scripts/discord-utils.js');
 const { exit } = require('process');
 
@@ -18,6 +19,7 @@ if(!fs.existsSync('config.json'))
 	let basic_config = {};
 	basic_config.clientId = "";
 	basic_config.token = "";
+	basic_config.errorLogGuild = "";
 
 	fs.writeFileSync('config.json', JSON.stringify(basic_config, null, 4));
 
@@ -25,12 +27,17 @@ if(!fs.existsSync('config.json'))
 	exit(0);
 }
 
-const { clientId, token } = require('./config.json');
+const { clientId, token, errorLogGuild } = require('./config.json');
 
 if(clientId.length == 0 || token.length == 0)
 {
 	console.log('Need to fill config.json with discord bot informations');
 	exit(0);
+}
+
+if(errorLogGuild.length == 0)
+{
+	console.log('No error log guild specified');
 }
 
 const guildValues = 
@@ -88,6 +95,7 @@ DataManager.initData(path.join(__dirname, 'data'), guildValues);
 DataManager.MessageManager = MessageManager;
 DataManager.RoleReactionManager = RoleReactionManager;
 DataManager.ThreadManager = ThreadManager;
+DataManager.LexiconManager = LexiconManager;
 
 let isInit = false;
 
@@ -153,18 +161,18 @@ client.on('ready', async function () {
 			try 
 			{
 				await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-				DataManager.logError(interaction.guild, 'Command Error :\n\n' + executionError);
+				DataManager.logError(interaction.guild, 'Command ' + interaction.commandName + ' Error :\n\n' + executionError);
 			} 
 			catch(replyError)
 			{
 				try 
 				{
 					await interaction.editReply('There was an error while executing this command!');
-					DataManager.logError(interaction.guild, 'Command Error :\n\n' + replyError);
+					DataManager.logError(interaction.guild, 'Command ' + interaction.commandName + ' Error :\n\n' + replyError + '\n' + executionError);
 				}
 				catch(cantReplyError)
 				{
-					DataManager.logError(interaction.guild, 'Answer is too long');
+					DataManager.logError(interaction.guild, 'Command ' + interaction.commandName + ' Error : Answer is too long');
 				}
 			}
 		}
@@ -213,6 +221,7 @@ client.on('ready', async function () {
 		MessageManager.collectPropal(DataManager, guild);
 		RoleReactionManager.initAllReactCollectorOnMessage(DataManager, guild);
 		ThreadManager.refreshAllThreadListener(DataManager, guild);
+		LexiconManager.initLexicon(DataManager, guild);
 	});
 	
 	isInit = true;
@@ -275,11 +284,11 @@ async function logError(guild, error)
 	}
 }
 
-if(caughtException)
+if(caughtException && errorLogGuild.length > 0)
 {
 	process.once('uncaughtException', async function (err)
 	{
-		await DataManager.logError(await DiscordUtils.getGuildById(client, '638775003600650241'), 'Uncaught exception: ' + err);
+		await DataManager.logError(await DiscordUtils.getGuildById(client, errorLogGuild), 'Uncaught exception: ' + err);
 		console.log('Uncaught exception: ' + err);
 		exit(1);
 	});
