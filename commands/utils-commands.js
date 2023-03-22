@@ -305,7 +305,7 @@ allCommands.push({
 		.addStringOption(option =>
 			option
 				.setName('name-format')
-				.setDescription('The format of the thread name (default : Name of user)')
+				.setDescription('The format of the thread name (default : First sentence)')
 				.setRequired(false)
 				.addChoices(
 					{ name: 'Name of user', value: 'NAME' },
@@ -330,7 +330,7 @@ allCommands.push({
 		let format = interaction.options.getString('name-format');
 		if((format != 'NAME') && (format != 'SENTENCE'))
 		{
-			format = 'NAME';
+			format = 'SENTENCE';
 		}
 
 		if(!active)
@@ -345,11 +345,36 @@ allCommands.push({
 			interaction.reply({content: 'Auto thread desactived for this channel', ephemeral: true});
 			return;
 		}
+
+		let changeFormat = false;
+
+		if(interaction.channel.id in guildData.autoCreateThreads)
+		{
+			if(guildData.autoCreateThreads[interaction.channel.id].format == format)
+			{
+				interaction.reply({content: 'Auto thread already activated for this channel', ephemeral: true});
+				return;
+			}
+			else
+			{
+				dataManager.ThreadManager.deleteThreadListener(interaction.guild, interaction.channel.id);
+				changeFormat = true;
+			}
+		}
 		
-		await dataManager.ThreadManager.refreshThreadListener(interaction.guild, interaction.channel.id, format);
+		await dataManager.ThreadManager.refreshThreadListener(dataManager, interaction.guild, interaction.channel.id, format);
 		guildData.autoCreateThreads[interaction.channel.id] = {format: format};
 		dataManager.writeInData(interaction.guild.id);
-		interaction.reply({content: 'Auto thread activated for this channel', ephemeral: true});
+		
+		if(changeFormat)
+		{
+			interaction.reply({content: 'Auto thread format changed for this channel', ephemeral: true});
+			return;
+		}
+		else
+		{
+			interaction.reply({content: 'Auto thread activated for this channel', ephemeral: true});
+		}
 	}
 });
 

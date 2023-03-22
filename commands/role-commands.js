@@ -85,41 +85,41 @@ allCommands.push({
 	async execute(interaction, dataManager) {
 		dataManager.initGuildData(interaction.guild.id);
 
-		let guildData = dataManager.getServerData(interaction.guild.id);
-		let categoryName = interaction.options.getString('category');
+		await interaction.deferReply({ephemeral: true});
+		let result = await sendCategoryMessage(dataManager, interaction.guild, interaction.channel, interaction.options.getString('category'));
 
-		if(!(categoryName in guildData.roleCategories))
+		if(result != null)
 		{
-			interaction.reply({content: 'Category "' + categoryName + '" don\'t exist', ephemeral: true});
+			interaction.editReply({content: result, ephemeral: true});
 			return;
 		}
 
-		let embed = dataManager.RoleReactionManager.createRoleReactionEmbedMessage(dataManager, interaction.guild, categoryName);
-		let newMessage = await interaction.channel.send({embeds: [embed]});
-
-		await interaction.deferReply({ephemeral: true});
-
-		for(let emoji in guildData.roleCategories[categoryName].roles)
-		{
-			try
-			{
-				await newMessage.react(emoji);
-			}
-			catch(error)
-			{
-				delete guildData.roleCategories[categoryName].roles[emoji];
-				embed = medataManager.RoleReactionManager.createRoleReactionEmbedMessage(dataManager, interaction.guild, categoryName);
-				await newMessage.edit({embeds: [embed]});
-			}
-		}
-
-		guildData.roleCategories[categoryName].channelId = newMessage.channel.id;
-		guildData.roleCategories[categoryName].messageId = newMessage.id;
-
-		dataManager.RoleReactionManager.initReactCollectorOnMessage(dataManager, interaction.guild, categoryName);
-
 		dataManager.writeInData(interaction.guild.id);
 		interaction.editReply({content: 'Message created', ephemeral: true});
+	}
+});
+
+allCommands.push({
+	data: new SlashCommandBuilder()
+		.setName('send-all-category-messages'),
+
+	dynamicCommandCreator: createCreateAllCategoryMessageCommand,
+
+	async execute(interaction, dataManager) {
+		dataManager.initGuildData(interaction.guild.id);
+
+		await interaction.deferReply({ephemeral: true});
+		
+		let guildData = dataManager.getServerData(interaction.guild.id);
+		let allCategories = Object.keys(guildData.roleCategories);
+
+		for(let i = 0; i < allCategories.length; i++)
+		{
+			await sendCategoryMessage(dataManager, interaction.guild, interaction.channel, allCategories[i]);
+		}
+
+		dataManager.writeInData(interaction.guild.id);
+		interaction.editReply({content: 'Messages created', ephemeral: true});
 	}
 });
 
@@ -287,6 +287,8 @@ allCommands.push({
 			return;
 		}
 
+		delete guildData.roleCategories[categoryName].roles[targetEmoji];
+
 		let reactMessage = await DiscordUtils.getMessageById(interaction.client, guildData.roleCategories[categoryName].channelId, guildData.roleCategories[categoryName].messageId);
 
 		if(reactMessage != null)
@@ -301,7 +303,6 @@ allCommands.push({
 			}
 		}
 
-		delete guildData.roleCategories[categoryName].roles[targetEmoji];
 		dataManager.writeInData(interaction.guild.id);
 		interaction.reply({content: 'Role removed from category ' + categoryName, ephemeral: true});
 	}
@@ -345,10 +346,23 @@ function createCreateCategoryMessageCommand(name, dataManager, guild)
 	let data = new SlashCommandBuilder();
 
 	data.setName(name);
-	data.setDescription('Create category message and react');
+	data.setDescription('Create category message and reacts');
 	data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
 
 	return setCategoryOption(data, dataManager, guild);
+}
+
+function createCreateAllCategoryMessageCommand(name, dataManager, guild)
+{
+	let data = new SlashCommandBuilder();
+
+	data.setName(name);
+	data.setDescription('Create all category messages and reacts');
+	data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
+
+	let nbCategories = Object.keys(dataManager.getServerData(guild.id).roleCategories).length;
+
+	return nbCategories > 0 ? data : null;
 }
 
 function createEditCategoryDisplayCommand(name, dataManager, guild)
@@ -445,6 +459,41 @@ function createRemoveEmojiRoleCommand(name, dataManager, guild)
 	);
 
 	return data;
+}
+
+async function sendCategoryMessage(dataManager, guild, channel, categoryName)
+{
+	let guildData = dataManager.getServerData(guild.id);
+
+	if(!(categoryName in guildData.roleCategories))
+	{
+		return 'Category "' + categoryName + '" don\'t exist';
+	}
+
+	let embed = dataManager.RoleReactionManager.createRoleReactionEmbedMessage(dataManager, guild, categoryName);
+	let newMessage = await channel.send({embeds: [embed]});
+
+	for(let emoji in guildData.roleCategories[categoryName].roles)
+	{
+		try
+		{
+			await newMessage.react(emoji);
+		}
+		catch(error)
+		{
+			delete guildData.roleCategories[categoryName].roles[emoji];
+			embed = medataManager.RoleReactionManager.createRoleReactionEmbedMessage(dataManager, guild, categoryName);
+			await newMessage.edit({embeds: [embed]});
+		}
+	}
+
+	guildData.roleCategories[categoryName].channelId = newMessage.channel.id;
+	guildData.roleCategories[categoryName].messageId = newMessage.id;
+
+	dataManager.RoleReactionManager.initReactCollectorOnMessage(dataManager, guild, categoryName);
+
+	dataManager.writeInData(guild.id);
+	return null;
 }
 
 module.exports = {

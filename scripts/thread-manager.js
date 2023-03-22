@@ -10,11 +10,11 @@ async function refreshAllThreadListener(dataManager, guild)
 
     for(let channelId in guildData.autoCreateThreads)
     {
-        await refreshThreadListener(guild, channelId, guildData.autoCreateThreads[channelId].format);
+        await refreshThreadListener(dataManager, guild, channelId, guildData.autoCreateThreads[channelId].format);
     }
 }
 
-async function refreshThreadListener(guild, channelId, format)
+async function refreshThreadListener(dataManager, guild, channelId, format)
 {
     deleteThreadListener(guild, channelId);
 
@@ -52,6 +52,24 @@ async function refreshThreadListener(guild, channelId, format)
                         break;
                     }
 
+                    if(message.content.slice(i, i + 4) == 'http')
+                    {
+                        if(threadName.length == 0)
+                        {
+                            if(message.content[i + 4] == 's')
+                            {
+                                i += 5;
+                            }
+                            else
+                            {
+                                i += 4;
+                            }
+
+                            threadName = message.content.slice(i + 3).split('/')[0].split('?')[0];
+                        }
+                        break;
+                    }
+
                     threadName += message.content[i];
                 }
                 break;
@@ -64,7 +82,14 @@ async function refreshThreadListener(guild, channelId, format)
             }
         }
 
-        message.startThread({name: threadName});
+        try
+        {
+            await message.startThread({name: threadName});
+        }
+        catch(error)
+        {
+            dataManager.logError(guild, error + '\nMessage: ' + message.url + '\nThread Name:' + threadName);
+        }
     });
 
     if(!(guild.id in threadListeners))
@@ -87,8 +112,8 @@ async function deleteThreadListener(guild, channelId)
         return;
     }
 
-    threadListeners[guild.id][channelId.id].stop();
-    delete threadListeners[guild.id][channelId.id];
+    threadListeners[guild.id][channelId].stop();
+    delete threadListeners[guild.id][channelId];
 }
 
 module.exports = 

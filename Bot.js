@@ -1,17 +1,17 @@
 const path = require('path');
 const fs = require('fs');
-const { Client, Events, Collection, GatewayIntentBits } = require('discord.js');
-const { REST } = require('@discordjs/rest');
+const { Client, Events, Collection, GatewayIntentBits, REST } = require('discord.js');
 const { Routes } = require('discord-api-types/v9');
 const DataManager = require('./scripts/data-manager.js');
 const MessageManager = require('./scripts/message-manager.js');
 const RoleReactionManager = require('./scripts/role-reaction-manager.js');
-const ThreadManager = require('./scripts/threadManager.js');
+const ThreadManager = require('./scripts/thread-manager.js');
 const DiscordUtils = require('./scripts/discord-utils.js');
 const { exit } = require('process');
 
 const needRefreshCommands = false;
 const sendInitError = true;
+const caughtException = true;
 
 if(!fs.existsSync('config.json'))
 {
@@ -273,6 +273,16 @@ async function logError(guild, error)
 			console.log('Can\'t log error : ' + error);
 		}
 	}
+}
+
+if(caughtException)
+{
+	process.once('uncaughtException', async function (err)
+	{
+		await DataManager.logError(await DiscordUtils.getGuildById(client, '638775003600650241'), 'Uncaught exception: ' + err);
+		console.log('Uncaught exception: ' + err);
+		exit(1);
+	});
 }
 
 DataManager.refreshCommandForGuild = refreshCommandForGuild;

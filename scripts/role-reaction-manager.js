@@ -82,6 +82,7 @@ async function initReactCollectorOnMessage(dataManager, guild, categoryName)
         }
         catch(error)
         {
+            dataManager.logError(guild, error + '\n(Try to add role ' + role.name + ' to ' + member.user.username + ')');
             console.log(error);
         }
     });
