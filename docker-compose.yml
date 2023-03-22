@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+
+  bot-discord:
+    build: .
+    volumes:
+      - ./data/:/usr/src/bot-discord/data/
+    restart:  unless-stopped
