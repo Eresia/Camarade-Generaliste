@@ -147,7 +147,7 @@ allCommands.push({
 	data: new SlashCommandBuilder()
 			.setName('purge')
 			.setDescription('Purge messages')
-			.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+			.setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
 			.addSubcommand(subcommand =>
 				subcommand
 					.setName('messages')
