@@ -44,21 +44,15 @@ allCommands.push({
 
 allCommands.push({
 	data: new SlashCommandBuilder()
-		.setName('delete-category')
-		.setDescription('Delete category')
-		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-		.addStringOption(option =>
-			option
-				.setName('category-name')
-				.setDescription('Name of the category')
-				.setRequired(true)
-		),
+		.setName('delete-category'),
+
+	dynamicCommandCreator: deleteCategoryCommand,
 
 	async execute(interaction, dataManager) {
 		dataManager.initGuildData(interaction.guild.id);
 
 		let guildData = dataManager.getServerData(interaction.guild.id);
-		let name = interaction.options.getString('category-name');
+		let name = interaction.options.getString('category');
 
 		if(!(name in guildData.roleCategories))
 		{
@@ -339,6 +333,17 @@ function setCategoryOption(data, dataManager, guild)
 	});
 
 	return data;
+}
+
+function deleteCategoryCommand(name, dataManager, guild)
+{
+	let data = new SlashCommandBuilder();
+
+	data.setName(name);
+	data.setDescription('Delete a category');
+	data.setDefaultMemberPermissions(PermissionFlagsBits.Administrator);
+
+	return setCategoryOption(data, dataManager, guild);
 }
 
 function createCreateCategoryMessageCommand(name, dataManager, guild)

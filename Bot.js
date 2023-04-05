@@ -10,7 +10,7 @@ const LexiconManager = require('./scripts/lexicon-manager.js');
 const DiscordUtils = require('./scripts/discord-utils.js');
 const { exit } = require('process');
 
-const needRefreshCommands = false;
+const needRefreshCommands = true;
 const sendInitError = true;
 const caughtException = true;
 
@@ -126,39 +126,7 @@ client.on('ready', async function () {
 	await refreshCommands();
 
 	client.on(Events.InteractionCreate, async function(interaction)
-	{
-		if(interaction.isModalSubmit())
-		{
-			switch(interaction.customId)
-			{
-				case 'anonymous-question-modal':
-				{
-					let obj = interaction.fields.getTextInputValue('question-object');
-					let question = interaction.fields.getTextInputValue('question-text');
-
-					await interaction.deferReply({ephemeral: true});
-
-					let result = await MessageManager.sendModalMessage(DataManager, interaction.guild, interaction.user, obj, question, DataManager.getServerData(interaction.guild.id).anonymousQuestionChannel);
-
-					interaction.editReply({content: result, ephemeral: true});
-					break;
-				}
-
-				case 'propal-modal':
-				{
-					let obj = interaction.fields.getTextInputValue('propal-object');
-					let propal = interaction.fields.getTextInputValue('propal-text');
-
-					await interaction.deferReply({ephemeral: true});
-
-					let result = await MessageManager.sendModalMessage(DataManager, interaction.guild, interaction.user, obj, propal, DataManager.getServerData(interaction.guild.id).propalChannel, ['✅', '❌']);
-
-					interaction.editReply({content: result, ephemeral: true});
-					break;
-				}
-			}
-			return;
-		}
+	{		
 		if(!interaction.isCommand() && !interaction.isUserContextMenuCommand())
 		{
 			return;
